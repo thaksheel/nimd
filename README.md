@@ -1,8 +1,20 @@
-# Deep NMF for Materials Discovery
+# NIMD: Nonnegative Interpretable Matrix Decomposition
 
-This repository contains the research code accompanying the manuscript
-**"Harnessing Nonnegative Matrix Factorization for Advanced Computational
-Materials Modeling"** by Thaksheel Alleck, Chinedu Ekuma, and Akwum Onwunta.
+NIMD is a Python research package for developing, benchmarking, and
+interpreting Nonnegative Matrix Factorization (NMF) methods for scientific
+representation learning. It accompanies the manuscript **"Harnessing
+Nonnegative Matrix Factorization for Advanced Computational Materials
+Modeling"**, but the package name and structure are intentionally algorithmic:
+the code is designed around interpretable nonnegative decompositions, not only
+around one demonstration dataset.
+
+The import package and executable are both named:
+
+```text
+nimd
+```
+
+NIMD stands for **Nonnegative Interpretable Matrix Decomposition**.
 
 ## Authors
 
@@ -10,50 +22,61 @@ Thaksheel Alleck <tna324@lehigh.edu><br>
 Akwum Onwunta <onwuntajunior@gmail.com><br>
 Chinedu Ekuma <cekuma1@gmail.com>
 
-The code is organized around the algorithmic development of interpretable
-Nonnegative Matrix Factorization (NMF) methods for scientific and materials
-informatics data. The included Heuslerene data are a benchmark example used in
-the manuscript, but the main purpose of the repository is broader: to compare,
-extend, and interpret NMF-based representations for high-dimensional,
-nonnegative materials descriptors.
+## Scientific Motivation
 
-## What This Repository Enables
+Many scientific datasets are naturally nonnegative: elemental fractions,
+spectral intensities, diffraction signals, microscopy counts, kinetic
+observables, and other additive descriptors often cannot be meaningfully
+negative. Classical dimensionality reduction methods such as PCA are useful and
+fast, but their signed components can mix physically unrelated contributions and
+make interpretation difficult.
 
-The code supports an end-to-end workflow for developing and evaluating NMF
-models:
+NMF-based methods address a different scientific need. They seek additive,
+parts-based factors that can often be mapped back to physical motifs,
+composition families, feature groups, or evolving structures. In materials
+design and related domains, this matters because a representation is useful not
+only when it improves a metric, but also when it helps researchers ask better
+questions: which features drive a prediction, which motifs persist across
+model depth, which factors are stable under initialization noise, and which
+representations remain chemically or physically meaningful.
 
-1. Build a nonnegative feature matrix from scientific descriptors.
-2. Initialize factor matrices with random or SVD-based initializers.
+NIMD therefore treats prediction and interpretation as linked tasks. The code
+can compare NMF representations with PCA in regression and classification, but
+its central contribution is the ability to study latent factors through
+nonnegativity, hierarchy, attribution, overlap, entropy, and identifiability.
+That makes the framework relevant to materials informatics, spectroscopy,
+composition-property modeling, dynamical datasets with nonnegative states, and
+other scientific settings where interpretable low-rank structure is more useful
+than a purely opaque embedding.
+
+## What NIMD Provides
+
+NIMD supports an end-to-end workflow:
+
+1. Load a nonnegative feature matrix and supervised target.
+2. Initialize factors with random or SVD-based NMF initializers.
 3. Fit standard, multilayer, deep, min-volume, or semi-supervised NMF models.
-4. Compare NMF representations with a PCA baseline.
-5. Evaluate learned latent factors on supervised regression or classification
-   tasks.
-6. Interpret factors through top-k feature attribution, layer mapping,
-   Normalized Mutual Information (NMI), Jaccard overlap, entropy, and SHAP-based
-   downstream importance.
-7. Study robustness and identifiability under rank changes, depth changes,
-   initialization choices, and controlled perturbations.
+4. Compare learned NMF representations with a PCA baseline.
+5. Evaluate latent factors on regression or classification tasks.
+6. Interpret factors through top-k feature attribution, SHAP-based downstream
+   importance, NMI, Jaccard overlap, entropy, and layer mapping.
+7. Test robustness under rank changes, depth changes, initialization choices,
+   and controlled perturbations.
 
-This makes the repository useful both as a manuscript reproduction package and
-as a starting point for applying NMF algorithms to other nonnegative scientific
-datasets.
+## Algorithms
 
-## Algorithmic Scope
-
-The repository includes implementations and experiment drivers for:
-
-| Method | Purpose |
+| Method | Role in NIMD |
 | --- | --- |
-| PCA baseline | Non-NMF dimensionality-reduction reference model. |
-| Beta-divergence NMF | NMF with beta/KL-style divergence objectives for non-Gaussian feature scales. |
-| Frobenius-norm NMF | Classical NMF objective with multiple optimization routines. |
-| Hierarchical rank-2 NMF | Recursive rank-2 splitting for coarse-to-fine factor discovery. |
-| Multilayer NMF | Layer-wise NMF factorization for hierarchical representations. |
-| Deep NMF | Jointly optimized multilayer NMF for multiscale latent structure. |
-| Min-volume deep NMF | Deep NMF with min-volume regularization for improved identifiability and robustness. |
-| Semi-supervised NMF | Joint representation learning using feature and label information. |
+| PCA baseline | Signed low-rank reference model for comparison. |
+| Beta-divergence NMF | NMF for non-Gaussian or scale-sensitive nonnegative data. |
+| Frobenius-norm NMF | Classical Euclidean NMF with multiple optimization routines. |
+| Hierarchical rank-2 NMF | Recursive coarse-to-fine factor discovery. |
+| Multilayer NMF | Layer-wise nonnegative factorization for hierarchical structure. |
+| Deep NMF | Jointly optimized multilayer decomposition. |
+| Min-volume deep NMF | Deep NMF with a geometric regularizer for identifiability and stability. |
+| Semi-supervised NMF | Joint use of feature and label information in the factorization. |
 
-The current code exposes the following model names through the runner:
+The public runner currently accepts these model names:
 
 ```text
 pca
@@ -65,70 +88,40 @@ deep
 ssnmf
 ```
 
-Min-volume deep NMF is run as `deep` with `DeepNMFParams(min_vol=True)`; some
-experiment scripts also use the label `minvol` as a convenience flag before
-internally switching to the deep NMF implementation.
+Min-volume deep NMF is activated by setting `DeepNMFParams(min_vol=True)`.
+The command line interface also accepts `minvol` as a convenience model label.
 
-## Repository Structure
-
-The repository is script-first and intentionally keeps the manuscript
-experiments visible at the top level.
+## Repository Layout
 
 ```text
 .
-|-- data/
-|   `-- data.csv                    # Bundled benchmark data used by the examples
-|-- nmfs/                           # Standalone/legacy NMF implementations
-|   |-- betaNMF.py
-|   |-- deepKLNMF.py
-|   |-- FroNMF.py
-|   |-- hierNMF.py
-|   |-- multilayerKLNMF.py
-|   |-- nnsvdlrc.py
-|   |-- semiNMF.py
-|   |-- sparseNMF.py
-|   `-- ssnmf.py
-|-- src/
-|   |-- core/
-|   |   |-- initiliazation.py       # NMF initialization routines
-|   |   |-- selection.py            # Model selection and factorization dispatch
-|   |   |-- sensitivity.py          # Sensitivity and perturbation utilities
-|   |   `-- utils.py                # Dataclasses, data loading, scoring helpers
-|   |-- deep/
-|   |   |-- deep.py                 # Deep and min-volume deep NMF
-|   |   |-- multilayer.py           # Multilayer KL-NMF
-|   |   `-- utils.py                # Deep/multilayer parameter classes
-|   |-- standard/
-|   |   |-- beta.py                 # Beta-divergence NMF
-|   |   |-- fronorm.py              # Frobenius-norm NMF
-|   |   |-- hier.py                 # Hierarchical rank-2 NMF
-|   |   |-- nnls.py                 # Nonnegative least-squares helper
-|   |   `-- utils.py                # Semi-supervised NMF wrapper
-|   |-- analyze_results.py          # Result summarization utilities
-|   |-- exports.py                  # Export helpers for factors and layers
-|   |-- interpretation.py           # Attribution, NMI, Jaccard, entropy tools
-|   |-- runner.py                   # Main experiment driver
-|   `-- supervised.py               # Regression/classification evaluation
-|-- run.py                          # Deep NMF exploratory driver
-|-- run_d.py                        # Batch supervised-evaluation driver
-|-- run_depths.py                   # Deep NMF depth-selection experiments
-|-- run_element_level_attribution.py # Factor attribution experiments
-|-- run_ie.py                       # Depth/noise interpretation experiments
-|-- run_layer_mapping.py            # Deep-layer mapping experiments
-|-- run_minvol_identifiability.py   # Min-volume robustness experiments
-|-- run_ssnmf.py                    # Semi-supervised NMF experiments
-|-- run_supervised_results.py       # Main supervised benchmark driver
-|-- data_analysis.py                # Result-table construction helpers
-|-- evaluations.py                  # Older evaluation utilities
-|-- periodic_map.py                 # Element/periodic-class mapping helpers
-`-- quick_analyze.py                # Quick post-processing helpers
+|-- nimd/                         # Installable Python package
+|   |-- core/                     # Dataclasses, initialization, selection, utilities
+|   |-- deep/                     # Multilayer, deep, and min-volume deep NMF
+|   |-- standard/                 # Beta, Frobenius, hierarchical, NNLS, SSNMF wrappers
+|   |-- analysis/                 # Result analysis and post-processing helpers
+|   |-- datasets/                 # Packaged benchmark CSV used by the CLI
+|   |-- legacy/                   # Older standalone research modules retained for reproducibility
+|   |-- cli.py                    # `nimd` command line interface
+|   |-- interpretation.py         # Attribution, NMI, Jaccard, entropy, layer mapping
+|   |-- runner.py                 # Main experiment driver
+|   |-- supervised.py             # Regression/classification evaluation
+|   `-- exports.py                # Export and plotting helpers
+|-- examples/                     # Manuscript and research driver scripts
+|-- tests/                        # Lightweight import/data smoke tests
+|-- data/                         # Repository copy of the benchmark dataset
+|-- src/                          # Compatibility alias for older `from src import ...`
+|-- nmfs/                         # Compatibility alias for older `import nmfs...`
+|-- setup.cfg                     # Package metadata and dependencies
+|-- setup.py                      # Setuptools entry point
+|-- pyproject.toml                # Modern build-system declaration
+|-- MANIFEST.in                   # Source distribution file rules
+`-- README.md
 ```
 
 ## Installation
 
-Run the code from the repository root. The current repository does not define a
-`setup.py` or `pyproject.toml`, so use a source checkout and install the Python
-dependencies into a virtual environment.
+The primary installation method is `pip install .`.
 
 ```bash
 git clone git@github.com:thaksheel/deep_nmf_materials_discovery.git
@@ -137,62 +130,73 @@ cd deep_nmf_materials_discovery
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
+python -m pip install .
+```
 
+For development:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+For optional hyperparameter tuning utilities:
+
+```bash
+python -m pip install ".[tuning]"
+```
+
+For a fuller research environment with tuning and notebook support:
+
+```bash
+python -m pip install ".[full]"
+```
+
+The manual dependency installation pattern below is no longer the recommended
+path:
+
+```bash
 python -m pip install numpy pandas scipy scikit-learn matplotlib seaborn torch shap openpyxl
 ```
 
-Optional dependency:
+It is replaced by the package metadata in `setup.cfg`, so `pip install .`
+installs the required runtime dependencies directly.
+
+## Quick Checks
+
+After installation, verify the executable:
 
 ```bash
-python -m pip install optuna
+nimd --version
 ```
 
-`optuna` is only needed for the fine-tuning utilities in `src/core/finetune.py`.
-
-Before running scripts that write results, create the output folders:
+Print the packaged benchmark data path:
 
 ```bash
-mkdir -p exports exports/bin-results exports/layers
+nimd data-path
 ```
 
-Most scripts are configured for CPU execution through `torch.device("cpu")`.
-This is the recommended starting point for reproducibility. GPU execution may
-require editing the relevant script and checking numerical stability for the
-chosen system.
-
-## Quick Smoke Check
-
-After installing the dependencies, verify that the source tree imports and that
-the bundled benchmark data can be loaded:
+Run a one-model smoke test using the packaged benchmark data:
 
 ```bash
-python - <<'PY'
-from src import quick_load_data
-
-X, y, df, feature_names = quick_load_data(
-    filenmae="./data/data.csv",
-    type="regression",
-)
-
-print("X shape:", X.shape)
-print("y shape:", y.shape)
-print("number of features:", len(feature_names))
-print("first five features:", feature_names[:5])
-PY
+nimd smoke
 ```
 
-Expected behavior: the command should print the feature matrix size, target
-size, and feature names without raising an import error.
+Run a compact benchmark across representative models:
 
-## Using the Core API
+```bash
+mkdir -p exports
+nimd benchmark --models pca beta fronorm hier multilayer deep --rank 4 --output exports/quick_benchmark.json
+```
 
-The top-level scripts are the easiest way to reproduce manuscript experiments,
-but the algorithmic workflow can also be called directly.
+The compact benchmark is intentionally small. It is meant to verify that the
+installed package works, not to reproduce the full manuscript sweeps.
+
+## Python API Example
 
 ```python
 import torch
 
-from src import (
+from nimd import (
     DeepNMFParams,
     Runner,
     RunnerParams,
@@ -201,7 +205,7 @@ from src import (
 )
 
 X, y, df, feature_names = quick_load_data(
-    filenmae="./data/data.csv",
+    filenmae="data/data.csv",
     type="regression",
 )
 
@@ -242,7 +246,7 @@ summary = runner.convert_results_to_df(results)
 print(summary)
 ```
 
-To activate min-volume regularization, use:
+To use min-volume deep NMF:
 
 ```python
 deep_params.min_vol = True
@@ -250,58 +254,36 @@ deep_params.normalize = 3
 runner_params.eps_stab = 1e-6
 ```
 
-## Main Parameter Choices
+## Running the Research Examples
 
-The central parameter objects are `DeepNMFParams`, `MultilayerParams`,
-`RunnerParams`, and `SSNMFParam`.
+The longer manuscript-style scripts live in `examples/`. Run them from the
+repository root after installing the package:
 
-Important options:
+```bash
+mkdir -p exports exports/bin-results exports/layers
+python examples/run_supervised_results.py
+```
 
-| Parameter | Meaning |
+Common entry points:
+
+| Goal | Command |
 | --- | --- |
-| `model` | One of `pca`, `beta`, `fronorm`, `hier`, `multilayer`, `deep`, or `ssnmf`. |
-| `task` | `regression` or `classification`. |
-| `ranks` | Factorization ranks evaluated by the runner. |
-| `layers_depths` | Number of layers used by multilayer/deep NMF. |
-| `layers_rank` | Explicit layer ranks, for example `[20, 10, 5]`. |
-| `division_base` | Converts a single rank into decreasing layer ranks when `layers_rank=None`. |
-| `convert_type` | `division_base` or `linspace` rank conversion in `Runner.convert_ranks_layers`. |
-| `init` | One of `random`, `nndsvd`, `nndsvda`, `nndsvdar`, or `nnsvdlrc`. |
-| `fronorm_algo` | One of `MUUP`, `ADMM`, `HALS`, `FPGM`, or `ALSH`. |
-| `min_vol` | Enables min-volume regularization for deep NMF. |
-| `normalize` | Normalization mode used by multilayer/deep updates; `3` is used with min-volume experiments. |
-| `eps_stab` | Numerical stabilizer used by deep/multilayer routines. |
-| `get_shap` | Computes SHAP values during supervised evaluation when enabled. |
-| `perturb` and `noise_level` | Used for initialization-noise robustness studies. |
+| Supervised comparison across NMF variants and PCA | `python examples/run_supervised_results.py` |
+| Deep NMF depth selection | `python examples/run_depths.py` |
+| Element-level attribution | `python examples/run_element_level_attribution.py` |
+| Deep-layer mapping | `python examples/run_layer_mapping.py` |
+| Min-volume identifiability and robustness | `python examples/run_minvol_identifiability.py` |
+| Semi-supervised NMF experiments | `python examples/run_ssnmf.py` |
+| Exploratory deep NMF runs | `python examples/run.py` or `python examples/run_d.py` |
 
-The manuscript experiments often sweep over ranks, initialization methods,
-depths, and noise levels. Check the configuration block near the top of each
-`run_*.py` script before launching a long job.
-
-## Running Manuscript Experiments
-
-Each script corresponds to a major algorithmic experiment or analysis route.
-Run commands from the repository root.
-
-| Goal | Script | Typical output |
-| --- | --- | --- |
-| Supervised comparison across NMF variants and PCA | `python run_supervised_results.py` | Excel tables under `exports/` |
-| Deep NMF depth selection with NMI/performance scoring | `python run_depths.py` | `depths_results*.xlsx`, `super_results*.xlsx` |
-| Element-level factor attribution | `python run_element_level_attribution.py` | Attribution and coherence/diversity tables |
-| Hierarchical layer mapping | `python run_layer_mapping.py` | Layer-attribution workbook and layer-map figure |
-| Min-volume identifiability and noise robustness | `python run_minvol_identifiability.py` | Noise-score, entropy, and robustness tables/plots |
-| Semi-supervised NMF evaluation | `python run_ssnmf.py` | SSNMF score tables |
-| Exploratory deep NMF runs | `python run.py` or `python run_d.py` | Experiment-specific Excel exports |
-
-Some scripts contain manuscript-specific overrides. For example, a script may
-define a broad list of models and then narrow it to one active model for a
-particular result table. Inspect the final active values of `models`, `tasks`,
-`ranks`, `inits`, `depths`, and output paths before running.
+Some examples are intentionally expensive. Before launching a full sweep, check
+the active values of `models`, `tasks`, `ranks`, `inits`, `depths`, `seeds`,
+`noise_levels`, and output paths near the top of each script.
 
 ## Input Data Format
 
-The algorithms operate on a nonnegative numerical matrix `X`. The bundled loader
-`quick_load_data` is tailored to the included benchmark CSV and expects:
+The core algorithms operate on a nonnegative numerical matrix `X`. The bundled
+loader `quick_load_data` expects the benchmark CSV convention:
 
 ```text
 Material
@@ -311,30 +293,43 @@ Composition
 Stability
 ```
 
-`quick_load_data` drops those columns from the feature matrix. For regression it
-uses `a` as the target. For classification it maps `Stability` from
-`stable`/`unstable` to `1`/`0`.
+Those columns are excluded from the feature matrix. For regression, `a` is used
+as the target. For classification, `Stability` is mapped from
+`stable`/`unstable` to `1`/`0`. All remaining columns are treated as
+nonnegative features.
 
-All remaining columns are treated as nonnegative features. In the bundled
-benchmark, these include elemental composition features and electronic
-descriptor features. To use another dataset, either:
+To use another dataset, either match this convention or write a small loader
+that returns `X`, `y`, `df`, and `feature_names`, then pass `X` and `y` to
+`Runner`.
 
-1. Match this column convention, or
-2. Write a small loader that returns `X`, `y`, `df`, and `feature_names`, then
-   pass `X` and `y` directly into `Runner`.
+## Important Parameters
+
+| Parameter | Meaning |
+| --- | --- |
+| `model` | One of `pca`, `beta`, `fronorm`, `hier`, `multilayer`, `deep`, or `ssnmf`. |
+| `task` | `regression` or `classification`. |
+| `ranks` | Factorization ranks evaluated by the runner. |
+| `layers_depths` | Number of layers in multilayer/deep NMF. |
+| `layers_rank` | Explicit layer ranks, for example `[20, 10, 5]`. |
+| `division_base` | Converts one rank into decreasing layer ranks when `layers_rank=None`. |
+| `convert_type` | `division_base` or `linspace` in `Runner.convert_ranks_layers`. |
+| `init` | `random`, `nndsvd`, `nndsvda`, `nndsvdar`, or `nnsvdlrc`. |
+| `fronorm_algo` | `MUUP`, `ADMM`, `HALS`, `FPGM`, or `ALSH`. |
+| `min_vol` | Enables min-volume regularization for deep NMF. |
+| `normalize` | Deep/multilayer normalization mode; `3` is used for min-volume runs. |
+| `eps_stab` | Numerical stabilizer for deep/multilayer updates. |
+| `get_shap` | Computes SHAP values during supervised evaluation. |
+| `perturb`, `noise_level` | Initialization-noise robustness controls. |
 
 ## Interpretation Inputs
 
-Several interpretation routines map factor loadings back to feature labels. For
-element-level materials interpretation, functions such as `map_factors`,
-`topk_element_attribution`, `run_layer_mapping.py`, and
-`run_minvol_identifiability.py` expect a lookup workbook at:
+Factor attribution and layer mapping can use a lookup workbook:
 
 ```text
 data/lookup.xlsx
 ```
 
-That lookup table should contain these columns:
+The workbook should contain:
 
 ```text
 i
@@ -342,73 +337,57 @@ elements
 class
 ```
 
-where `i` is the zero-based feature index, `elements` is the feature or element
-label, and `class` is the user-defined feature group. The same mechanism can be
-adapted to non-elemental datasets by replacing `elements` and `class` with
-domain-specific feature names and groups.
+where `i` is the zero-based feature index, `elements` is the feature label, and
+`class` is a user-defined feature group. For non-materials datasets, the same
+scheme can represent any domain-specific feature names and categories.
+
+The factorization and supervised benchmarks do not require `lookup.xlsx`.
+Element-level attribution and layer-mapping examples do require it.
 
 ## Outputs
 
-Experiment scripts write most results to `exports/`.
+The example scripts usually write to `exports/`.
 
 Common outputs include:
 
-| Output type | Description |
+| Output | Description |
 | --- | --- |
 | Supervised score tables | R2, RMSE, MAE, accuracy, F1, runtime, rank, model, initialization. |
 | Depth-selection tables | Candidate depths, NMI values, supervised scores, combined depth scores. |
 | Attribution tables | Top-k feature/factor mappings with supervised importance. |
 | Layer maps | Jaccard-style relationships across adjacent deep NMF layers. |
-| Robustness tables | Noise-level, seed, rank, RMSE deviation, entropy deviation, and factor-label stability. |
+| Robustness tables | Noise-level, seed, rank, RMSE deviation, entropy deviation, factor-label stability. |
 
-The exact output filenames are defined inside each script.
+## Development Checks
+
+Compile the package and examples:
+
+```bash
+python -m compileall nimd examples tests
+```
+
+Run smoke tests:
+
+```bash
+python -m pytest
+```
+
+Build source and wheel distributions:
+
+```bash
+python -m build
+```
 
 ## Reproducibility Notes
 
-- Run scripts from the repository root so imports such as `from src import *`
-  and paths such as `./data/data.csv` resolve correctly.
-- The code uses fixed random seeds in the provided experiment scripts, but NMF
-  methods can still show numerical variation across hardware, BLAS libraries,
-  PyTorch versions, and CPU/GPU settings.
-- The default split convention in the experiment scripts is
-  `val_train_test_splits=[0, 0.8, 0.2]`.
-- Some manuscript experiments are computationally expensive, especially
-  min-volume deep NMF and robustness sweeps across many ranks, seeds, and noise
-  levels.
-- The repository currently includes research scripts rather than a formal test
-  suite. A practical validation path is to run the smoke check, then run a small
-  rank subset, and only then launch the full manuscript sweeps.
-
-## Troubleshooting
-
-**`ModuleNotFoundError: No module named 'src'`**
-
-Run the command from the repository root.
-
-**`FileNotFoundError` for `exports/...`**
-
-Create output folders before running:
-
-```bash
-mkdir -p exports exports/bin-results exports/layers
-```
-
-**`FileNotFoundError: ./data/lookup.xlsx`**
-
-The factorization and supervised benchmarks do not need `lookup.xlsx`, but
-element-level attribution and layer-mapping scripts do. Add a lookup workbook
-with columns `i`, `elements`, and `class`.
-
-**A script takes a long time**
-
-Reduce `ranks`, `inits`, `depths`, `seeds`, or `noise_levels` in the script's
-configuration block before launching the full sweep.
-
-**CUDA/GPU results are unstable**
-
-Start with the CPU configuration already used in the scripts. If GPU execution
-is needed, change the `device` setting deliberately and compare against a small
-CPU run.
+- The package now imports as `nimd`. The old `src` and `nmfs` names are retained
+  only as compatibility aliases.
+- CPU execution is the default in the examples and CLI. Start there before
+  experimenting with GPU execution.
+- NMF solutions can vary with initialization, rank, hardware, BLAS libraries,
+  and PyTorch versions. Compare compact checks first, then run full sweeps.
+- Min-volume deep NMF and robustness experiments are more expensive than the
+  compact CLI benchmark.
 
 ## Citation
 
@@ -420,7 +399,7 @@ Harnessing Nonnegative Matrix Factorization for Advanced Computational
 Materials Modeling.
 ```
 
-Add the final journal, DOI, or preprint information once it is available.
+Add final journal, DOI, or preprint information once available.
 
 ## Repository
 
