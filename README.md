@@ -112,6 +112,7 @@ The command line interface also accepts `minvol` as a convenience model label.
 |-- data/                         # Repository copy of the benchmark dataset
 |-- src/                          # Compatibility alias for older `from src import ...`
 |-- nmfs/                         # Compatibility alias for older `import nmfs...`
+|-- nimd.in                       # Unified input file for command-line runs
 |-- setup.cfg                     # Package metadata and dependencies
 |-- setup.py                      # Setuptools entry point
 |-- pyproject.toml                # Modern build-system declaration
@@ -179,6 +180,18 @@ Run a one-model smoke test using the packaged benchmark data:
 
 ```bash
 nimd smoke
+```
+
+Run the same package through the unified input file:
+
+```bash
+nimd run --input nimd.in
+```
+
+To create a fresh editable input file after installing NIMD:
+
+```bash
+nimd init-input --output nimd.in
 ```
 
 Run a compact benchmark across representative models:
@@ -282,6 +295,155 @@ the active values of `models`, `tasks`, `ranks`, `inits`, `depths`, `seeds`,
 
 ## Input Data Format
 
+NIMD uses two kinds of input:
+
+1. A control file named `nimd.in`, which tells the executable what to run.
+2. A CSV data file, which supplies the feature matrix and supervised target.
+
+The recommended command-line workflow is:
+
+```bash
+nimd run --input nimd.in
+```
+
+The repository already includes `nimd.in`. Installed users can also generate a
+new copy:
+
+```bash
+nimd init-input --output nimd.in
+```
+
+The input file is plain text and uses INI sections. Lines beginning with `#` or
+`;` are comments. Relative paths are resolved from the folder containing the
+input file, so `output = exports/results.json` writes beside the input file
+unless an absolute path is supplied.
+
+### `nimd.in` Example
+
+```ini
+[run]
+mode = benchmark
+data = packaged
+task = regression
+models = pca, beta, fronorm, hier, multilayer, deep
+ranks = 4
+outerit = 2
+maxiter = 2
+output = exports/nimd_input_benchmark.json
+
+[model]
+init = auto
+eval_type = auto
+fronorm_algo = HALS
+modelname = rf
+dtype = float64
+device = cpu
+rng = 42
+get_shap = false
+display = false
+cv = false
+return_tensor = false
+val_train_test_splits = 0, 0.8, 0.2
+eps_stab = auto
+convert_type = division_base
+end = 10
+norm_X = none
+norm_init = none
+perturb = false
+noise_level = none
+
+[deep]
+layers_depths = 2
+division_base = 2
+lam = none
+rho = 10
+beta = 1
+min_vol = false
+normalize = 2
+innerloop = 1
+maxIterADMM = 2
+accADMM = true
+epsi = 1e-4
+HnormType = rows
+
+[ssnmf]
+model_num = 4
+split = 0.2
+tol = 1e-4
+numiters = 2
+iter_s = 2
+lam = 1e-3
+seed = 42
+```
+
+### `[run]` Tags
+
+| Tag | Meaning |
+| --- | --- |
+| `mode` | `smoke` runs the first listed model; `benchmark` runs all listed models. |
+| `data` | `packaged` uses the benchmark CSV shipped with NIMD. A path such as `data/data.csv` uses a user-supplied CSV. |
+| `task` | `regression` uses the numeric target column; `classification` uses the stability labels. |
+| `models` | Comma-separated list from `pca`, `beta`, `fronorm`, `hier`, `multilayer`, `deep`, `ssnmf`, and `minvol`. |
+| `ranks` | One or more positive integer factorization ranks, for example `4` or `10, 20, 40`. |
+| `outerit` | Outer alternating-optimization iterations for deep NMF style models. |
+| `maxiter` | Inner or standard optimization iterations. Keep small for checks; increase for research runs. |
+| `output` | JSON output path. Use `none` to print JSON to the terminal. |
+
+### `[model]` Tags
+
+| Tag | Meaning |
+| --- | --- |
+| `init` | Initialization method. `auto` uses `random` for PCA/hierarchical NMF and `nndsvd` otherwise. |
+| `eval_type` | `auto`, `feature`, or `full`. `auto` uses feature evaluation for PCA and full reconstruction evaluation otherwise. |
+| `fronorm_algo` | Optimization routine for Frobenius NMF: `MUUP`, `ADMM`, `HALS`, `FPGM`, or `ALSH`. |
+| `modelname` | Downstream supervised model: commonly `rf`, `linreg`, `logit`, or `mlp`. |
+| `dtype` | PyTorch numerical precision, currently `float64` or `float32`. |
+| `device` | PyTorch device string. Start with `cpu` for reproducible checks. |
+| `rng` | Random seed used by initialization and supervised splits. |
+| `get_shap` | `true` computes SHAP values during supervised evaluation. It is slower. |
+| `display` | `true` prints per-model progress while running. |
+| `cv` | Enables cross-validation in the supervised learner when supported. |
+| `return_tensor` | Keeps tensor outputs from deep routines instead of converting to arrays. |
+| `val_train_test_splits` | Three comma-separated split values. The default is `0, 0.8, 0.2`. |
+| `eps_stab` | Numerical stabilizer. `auto` uses `1e-6` for min-volume runs and `1e-7` otherwise. |
+| `convert_type` | Rank-to-layer conversion rule: `division_base` or `linspace`. |
+| `end` | Final rank value used when `convert_type = linspace`. |
+| `norm_X` | Optional feature normalization, such as `minmax`, `standard`, or `none`. |
+| `norm_init` | Optional initialization normalization, such as `scaling`, `feature_norm`, or `none`. |
+| `perturb` | `true` applies initialization perturbation for robustness studies. |
+| `noise_level` | Perturbation noise level. Use `none` unless `perturb = true`. |
+
+### `[deep]` Tags
+
+| Tag | Meaning |
+| --- | --- |
+| `layers_depths` | Number of layers for multilayer and deep NMF. |
+| `division_base` | Divides the first rank to create lower layer ranks when `convert_type = division_base`. |
+| `lam` | Optional comma-separated deep regularization weights, or `none`. |
+| `rho` | ADMM penalty parameter for min-volume deep NMF. |
+| `beta` | Beta-divergence setting used by relevant NMF updates. |
+| `min_vol` | `true` enables min-volume regularization for deep NMF. The `minvol` model label also enables this automatically. |
+| `normalize` | Deep NMF normalization mode. Use `3` for min-volume runs. |
+| `innerloop` | Inner-loop count used by min-volume ADMM updates. |
+| `maxIterADMM` | Maximum ADMM iterations for min-volume updates. |
+| `accADMM` | `true` uses accelerated ADMM where available. |
+| `epsi` | Deep/multilayer convergence tolerance. |
+| `HnormType` | H normalization direction, usually `rows` or `cols`. |
+
+### `[ssnmf]` Tags
+
+| Tag | Meaning |
+| --- | --- |
+| `model_num` | Semi-supervised NMF variant number. Supported research values are `3`, `4`, `5`, or `6`. |
+| `split` | Semi-supervised train/test split fraction. |
+| `tol` | Semi-supervised stopping tolerance. |
+| `numiters` | Semi-supervised optimization iterations. |
+| `iter_s` | Iterations for mapping held-out data into the learned semi-supervised representation. |
+| `lam` | Semi-supervised label-weighting parameter. |
+| `seed` | Random seed for semi-supervised NMF. |
+
+### CSV Data File
+
 The core algorithms operate on a nonnegative numerical matrix `X`. The bundled
 loader `quick_load_data` expects the benchmark CSV convention:
 
@@ -298,9 +460,10 @@ as the target. For classification, `Stability` is mapped from
 `stable`/`unstable` to `1`/`0`. All remaining columns are treated as
 nonnegative features.
 
-To use another dataset, either match this convention or write a small loader
-that returns `X`, `y`, `df`, and `feature_names`, then pass `X` and `y` to
-`Runner`.
+To use another dataset with `nimd run`, keep this CSV convention and set
+`data = path/to/your_data.csv` in `nimd.in`. For a different schema, write a
+small loader that returns `X`, `y`, `df`, and `feature_names`, then pass `X` and
+`y` directly to `Runner` through the Python API.
 
 ## Important Parameters
 

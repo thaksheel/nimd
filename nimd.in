@@ -1,0 +1,74 @@
+# NIMD unified input file.
+# Run with:
+#   nimd run --input nimd.in
+
+[run]
+# smoke runs the first listed model; benchmark runs every listed model.
+mode = benchmark
+
+# Use "packaged" for the benchmark CSV shipped with NIMD, or provide a CSV path.
+data = packaged
+
+# regression uses column "a"; classification uses column "Stability".
+task = regression
+
+# Supported names: pca, beta, fronorm, hier, multilayer, deep, ssnmf, minvol.
+models = pca, beta, fronorm, hier, multilayer, deep
+
+# One or more positive integer factorization ranks.
+ranks = 4
+
+# Compact defaults keep installation checks fast. Increase for research runs.
+outerit = 2
+maxiter = 2
+
+# Use "none" to print JSON to the terminal instead of writing a file.
+output = exports/nimd_input_benchmark.json
+
+[model]
+# auto uses random for PCA/hierarchical NMF and nndsvd for the other models.
+init = auto
+
+# auto uses feature evaluation for PCA and full reconstruction evaluation otherwise.
+eval_type = auto
+
+fronorm_algo = HALS
+modelname = rf
+dtype = float64
+device = cpu
+rng = 42
+get_shap = false
+display = false
+cv = false
+return_tensor = false
+val_train_test_splits = 0, 0.8, 0.2
+eps_stab = auto
+convert_type = division_base
+end = 10
+norm_X = none
+norm_init = none
+perturb = false
+noise_level = none
+
+[deep]
+layers_depths = 2
+division_base = 2
+lam = none
+rho = 10
+beta = 1
+min_vol = false
+normalize = 2
+innerloop = 1
+maxIterADMM = 2
+accADMM = true
+epsi = 1e-4
+HnormType = rows
+
+[ssnmf]
+model_num = 4
+split = 0.2
+tol = 1e-4
+numiters = 2
+iter_s = 2
+lam = 1e-3
+seed = 42
