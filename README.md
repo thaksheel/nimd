@@ -126,7 +126,7 @@ The primary installation method is `pip install .`.
 
 ```bash
 git clone https://github.com/thaksheel/nimd.git
-cd deep_nmf_materials_discovery
+cd nimd
 
 python3 -m venv .venv
 source .venv/bin/activate
